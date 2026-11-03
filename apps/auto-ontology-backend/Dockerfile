@@ -1,19 +1,9 @@
-# Builds from vendored NVIDIA Auto Ontology with a public Ubuntu base
-# (avoids NGC auth for nvcr.io/nvidia/base/ubuntu and unpublished app tags).
+# Prefer building with context vendor/nvidia-auto-ontology and Dockerfile.aiven.
+# This copy stays in sync for tooling that looks under apps/.
 ARG BASE_IMG=ubuntu
 ARG BASE_IMG_TAG=22.04
-# Delegate to upstream Dockerfile with overridden base image.
-# Build context MUST be vendor/nvidia-auto-ontology
-FROM ${BASE_IMG}:${BASE_IMG_TAG} AS _unused
-# The real build uses the upstream file; this Dockerfile exists so Runtime
-# discovers apps/auto-ontology-backend/Dockerfile. Prefer:
-#   docker build -f Dockerfile --build-arg BASE_IMG=ubuntu --build-arg BASE_IMG_TAG=22.04 .
-# from vendor/nvidia-auto-ontology.
-#
-# Compose sets dockerfile to this path with context vendor/nvidia-auto-ontology
-# by copying upstream content below (keep in sync with vendor Dockerfile).
-
 ARG UV_VERSION=0.11.29
+
 FROM ${BASE_IMG}:${BASE_IMG_TAG} AS builder
 ARG UV_VERSION
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PIP_DISABLE_PIP_VERSION_CHECK=1 \
@@ -24,8 +14,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends build-essential
 RUN curl -LsSf "https://astral.sh/uv/${UV_VERSION}/install.sh" -o /tmp/install-uv.sh \
  && env UV_UNMANAGED_INSTALL=/usr/local/bin sh /tmp/install-uv.sh && rm /tmp/install-uv.sh
 WORKDIR /app
-COPY pyproject.toml uv.lock .python-version ./
-COPY vendor/ vendor/
+COPY vendor/nvidia-auto-ontology/pyproject.toml vendor/nvidia-auto-ontology/uv.lock vendor/nvidia-auto-ontology/.python-version ./
+COPY vendor/nvidia-auto-ontology/vendor/ vendor/
 RUN --mount=type=cache,target=/root/.cache/uv uv sync --no-dev --no-install-project
 
 FROM ${BASE_IMG}:${BASE_IMG_TAG} AS runtime
@@ -38,11 +28,11 @@ RUN apt-get update && apt-get upgrade -y --no-install-recommends \
 WORKDIR /app
 COPY --from=builder /opt/python /opt/python
 COPY --from=builder /opt/venv /opt/venv
-COPY --chown=auto_ontology:auto_ontology auto_ontology/ ./auto_ontology/
-COPY --chown=auto_ontology:auto_ontology pyproject.toml ./
+COPY --chown=auto_ontology:auto_ontology vendor/nvidia-auto-ontology/auto_ontology/ ./auto_ontology/
+COPY --chown=auto_ontology:auto_ontology vendor/nvidia-auto-ontology/pyproject.toml ./
 RUN python -c "from auto_ontology.server.users.permissions import permissions_for_role; assert 'group:read' in permissions_for_role('admin')"
-COPY --chown=auto_ontology:auto_ontology alembic/ ./alembic/
-COPY --chown=auto_ontology:auto_ontology alembic.ini ./
+COPY --chown=auto_ontology:auto_ontology vendor/nvidia-auto-ontology/alembic/ ./alembic/
+COPY --chown=auto_ontology:auto_ontology vendor/nvidia-auto-ontology/alembic.ini ./
 COPY --chmod=0755 <<'EOF' /usr/local/bin/entrypoint.sh
 #!/bin/sh
 set -e
@@ -54,10 +44,8 @@ case "$mode" in
   *) echo "Unknown mode: $mode" >&2; exit 2 ;;
 esac
 EOF
-COPY LICENSE THIRD_PARTY_NOTICES.md CONTAINER_THIRD_PARTY_NOTICES.md OPEN_SOURCE_NOTICE /licenses/
+COPY vendor/nvidia-auto-ontology/LICENSE vendor/nvidia-auto-ontology/THIRD_PARTY_NOTICES.md vendor/nvidia-auto-ontology/CONTAINER_THIRD_PARTY_NOTICES.md vendor/nvidia-auto-ontology/OPEN_SOURCE_NOTICE /licenses/
 USER auto_ontology
 EXPOSE 3001
-HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
-  CMD python -c "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen(f'http://127.0.0.1:{__import__(\"os\").environ.get(\"PORT\",\"3001\")}/api/health/live', timeout=3).status == 200 else 1)"
 ENTRYPOINT ["/usr/bin/tini", "--", "/usr/local/bin/entrypoint.sh"]
 CMD ["server"]
