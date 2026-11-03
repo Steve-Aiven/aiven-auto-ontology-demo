@@ -1,9 +1,11 @@
-# Runtime build of the Next.js UI. Build context: repository root.
+# Frontend image for Aiven Runtime. Build context: repository root.
+# Mirrors vendor/nvidia-auto-ontology/frontend/Dockerfile.aiven with root-relative COPY paths,
+# plus migrate-on-start so Runtime does not need a separate migrate Job.
 ARG NODE_MAJOR=22
 ARG PNPM_VERSION=10.10.0
 ARG BASE_IMG=ubuntu
 ARG BASE_IMG_TAG=22.04
-ARG PYTHON_API_URL=http://127.0.0.1:3001
+ARG PYTHON_API_URL=http://auto-ontology:3001
 
 FROM ${BASE_IMG}:${BASE_IMG_TAG} AS base-node
 ARG NODE_MAJOR
@@ -17,23 +19,43 @@ RUN apt-get update \
 
 FROM base-node AS deps
 ARG PNPM_VERSION
-ENV PNPM_HOME=/pnpm PATH=/pnpm:$PATH CI=1
-RUN corepack enable && corepack prepare "pnpm@${PNPM_VERSION}" --activate
+ENV PNPM_HOME=/pnpm \
+    PATH=/pnpm:$PATH \
+    CI=1
+RUN npm install -g --silent corepack@latest \
+ && corepack enable \
+ && corepack prepare pnpm@${PNPM_VERSION} --activate
 WORKDIR /app
 COPY vendor/nvidia-auto-ontology/frontend/package.json \
      vendor/nvidia-auto-ontology/frontend/pnpm-lock.yaml \
-     vendor/nvidia-auto-ontology/frontend/pnpm-workspace.yaml ./
-RUN pnpm install --frozen-lockfile
+     vendor/nvidia-auto-ontology/frontend/pnpm-workspace.yaml \
+     vendor/nvidia-auto-ontology/frontend/.npmrc ./
+COPY vendor/nvidia-auto-ontology/frontend/prisma ./prisma
+RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
+    pnpm install --frozen-lockfile
 
-FROM deps AS builder
+FROM base-node AS builder
 ARG PYTHON_API_URL
-ENV NEXT_TELEMETRY_DISABLED=1 NEXT_OUTPUT=standalone PYTHON_API_URL=${PYTHON_API_URL}
+ARG PNPM_VERSION
+ENV PNPM_HOME=/pnpm \
+    PATH=/pnpm:$PATH \
+    CI=1 \
+    NEXT_TELEMETRY_DISABLED=1 \
+    NEXT_OUTPUT=standalone \
+    PYTHON_API_URL=${PYTHON_API_URL}
+RUN npm install -g --silent corepack@latest \
+ && corepack enable \
+ && corepack prepare pnpm@${PNPM_VERSION} --activate
 WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
 COPY vendor/nvidia-auto-ontology/frontend/ ./
 RUN pnpm build
 
-FROM ${BASE_IMG}:${BASE_IMG_TAG} AS runtime
-ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1 PORT=3000 HOSTNAME=0.0.0.0
+FROM base-node AS runtime
+ENV NODE_ENV=production \
+    NEXT_TELEMETRY_DISABLED=1 \
+    PORT=3000 \
+    HOSTNAME=0.0.0.0
 RUN apt-get update \
  && apt-get install -y --no-install-recommends tini ca-certificates \
  && rm -rf /var/lib/apt/lists/* \
