@@ -1,0 +1,155 @@
+# Local development stack (pgvector image locally; use compose.aiven.yaml on Aiven Runtime).
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    ports:
+      - "${POSTGRES_HOST_PORT:-5432}:5432"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DATABASE:-auto_ontology}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./data/saas/01_init_extensions.sql:/docker-entrypoint-initdb.d/01_init_extensions.sql:ro
+      - ./data/saas/02_saas_schema.sql:/docker-entrypoint-initdb.d/02_saas_schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DATABASE:-auto_ontology}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  opensearch:
+    image: opensearchproject/opensearch:2.19.0
+    ports:
+      - "9200:9200"
+    environment:
+      discovery.type: single-node
+      plugins.security.disabled: "true"
+      OPENSEARCH_JAVA_OPTS: -Xms1g -Xmx1g
+      DISABLE_INSTALL_DEMO_CONFIG: "true"
+    volumes:
+      - opensearch_data:/usr/share/opensearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:9200 >/dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+
+  os-embed-shim:
+    build:
+      context: ./apps/os-embed-shim
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    depends_on:
+      opensearch:
+        condition: service_healthy
+    environment:
+      OPENSEARCH_URL: http://opensearch:9200
+      OPENSEARCH_USER: admin
+      OPENSEARCH_PASSWORD: admin
+      OPENSEARCH_SSL_VERIFY: "false"
+      OS_EMBED_MODEL_ID: ${OS_EMBED_MODEL_ID:-}
+      OS_EMBED_DIMS: ${OS_EMBED_DIMS:-384}
+
+  auto-ontology:
+    build:
+      context: ./vendor/nvidia-auto-ontology
+      dockerfile: Dockerfile.aiven
+    ports:
+      - "3001:3001"
+    env_file:
+      - .env
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
+      INGESTION_SERVICE_URL: http://ingestion-service:3002
+      EMBED_ENDPOINT: http://os-embed-shim:8080/v1
+      EMBED_MODEL: os-embed
+      EMBED_API_KEY: unused
+    depends_on:
+      postgres:
+        condition: service_healthy
+      os-embed-shim:
+        condition: service_started
+      auto-ontology-migrate:
+        condition: service_completed_successfully
+
+  ingestion-service:
+    build:
+      context: ./vendor/nvidia-auto-ontology
+      dockerfile: Dockerfile.aiven
+    command: ["ingestion_service"]
+    ports:
+      - "3002:3002"
+    env_file:
+      - .env
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
+      EMBED_ENDPOINT: http://os-embed-shim:8080/v1
+      EMBED_MODEL: os-embed
+      EMBED_API_KEY: unused
+    depends_on:
+      postgres:
+        condition: service_healthy
+      auto-ontology-migrate:
+        condition: service_completed_successfully
+
+  auto-ontology-migrate:
+    build:
+      context: ./vendor/nvidia-auto-ontology
+      dockerfile: Dockerfile.aiven
+    command: ["migrate"]
+    restart: "no"
+    env_file:
+      - .env
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  frontend-migrate:
+    build:
+      context: ./vendor/nvidia-auto-ontology/frontend
+      dockerfile: Dockerfile.aiven
+      args:
+        PYTHON_API_URL: http://auto-ontology:3001
+    command: ["sh", "prisma/migrate.sh"]
+    restart: "no"
+    working_dir: /app/migrate
+    env_file:
+      - .env
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  auto-ontology-frontend:
+    build:
+      context: ./vendor/nvidia-auto-ontology/frontend
+      dockerfile: Dockerfile.aiven
+      args:
+        PYTHON_API_URL: http://auto-ontology:3001
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    environment:
+      PYTHON_API_URL: http://auto-ontology:3001
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
+    depends_on:
+      auto-ontology:
+        condition: service_started
+      frontend-migrate:
+        condition: service_completed_successfully
+
+volumes:
+  postgres_data:
+  opensearch_data:
