@@ -42,14 +42,17 @@ ENV PNPM_HOME=/pnpm \
     CI=1 \
     NEXT_TELEMETRY_DISABLED=1 \
     NEXT_OUTPUT=standalone \
-    PYTHON_API_URL=${PYTHON_API_URL}
+    PYTHON_API_URL=${PYTHON_API_URL} \
+    NODE_OPTIONS=--max-old-space-size=3072
 RUN npm install -g --silent corepack@latest \
  && corepack enable \
  && corepack prepare pnpm@${PNPM_VERSION} --activate
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY vendor/nvidia-auto-ontology/frontend/ ./
-RUN pnpm build
+# Prefer webpack over Turbopack for lower peak memory on Runtime builders.
+RUN pnpm exec prisma generate \
+ && pnpm exec next build --webpack
 
 FROM base-node AS runtime
 ENV NODE_ENV=production \
