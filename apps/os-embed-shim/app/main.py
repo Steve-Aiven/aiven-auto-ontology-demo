@@ -20,18 +20,44 @@ def _env(name: str, default: str | None = None) -> str:
     return value
 
 
-def opensearch_client() -> httpx.Client:
-    url = _env("OPENSEARCH_URL").rstrip("/")
-    user = os.environ.get("OPENSEARCH_USER", "avnadmin")
-    password = _env("OPENSEARCH_PASSWORD")
+def _opensearch_settings() -> tuple[str, str | None, str | None, bool]:
+    """Resolve OpenSearch URL and optional basic-auth from env.
+
+    Supports either:
+    - OPENSEARCH_URL + OPENSEARCH_USER + OPENSEARCH_PASSWORD
+    - OPENSEARCH_CONNECTION_STRING (https://user:pass@host:port) from Aiven Runtime
+    """
     verify = os.environ.get("OPENSEARCH_SSL_VERIFY", "true").lower() in (
         "1",
         "true",
         "yes",
     )
+    conn = os.environ.get("OPENSEARCH_CONNECTION_STRING", "").strip()
+    if conn:
+        from urllib.parse import urlparse, urlunparse
+
+        parsed = urlparse(conn)
+        user = parsed.username
+        password = parsed.password
+        # Rebuild without credentials for base_url
+        netloc = parsed.hostname or ""
+        if parsed.port:
+            netloc = f"{netloc}:{parsed.port}"
+        base = urlunparse((parsed.scheme or "https", netloc, "", "", "", "")).rstrip("/")
+        return base, user, password, verify
+
+    url = _env("OPENSEARCH_URL").rstrip("/")
+    user = os.environ.get("OPENSEARCH_USER", "avnadmin")
+    password = _env("OPENSEARCH_PASSWORD")
+    return url, user, password, verify
+
+
+def opensearch_client() -> httpx.Client:
+    url, user, password, verify = _opensearch_settings()
+    auth = (user, password) if user and password else None
     return httpx.Client(
         base_url=url,
-        auth=(user, password),
+        auth=auth,
         verify=verify,
         timeout=httpx.Timeout(120.0),
     )
