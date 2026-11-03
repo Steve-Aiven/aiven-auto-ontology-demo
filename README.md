@@ -32,7 +32,14 @@ docker compose up -d --build os-embed-shim
 ./scripts/smoke_test.sh
 ```
 
-Deploy apps on **Aiven Runtime**: Console → Runtime → Deploy application → this repo → select `compose.aiven.yaml` → Deploy. Set secrets/`OS_EMBED_MODEL_ID` in the application env.
+### Runtime apps
+
+- Embeddings shim service: **`ao-embed-shim`** (deployed from this repo’s `apps/os-embed-shim`, integrated with `ao-opensearch`).
+- Full Auto Ontology UI stack: Console → Runtime → Deploy → select [`compose.aiven.yaml`](compose.aiven.yaml), then set `AIVEN_AI_GATEWAY_API_KEY`, `AUTH_SECRET`, `OS_EMBED_MODEL_ID`, and Postgres `CONNECTION_STRINGS` for `saas_analytics`.
+
+GitHub: https://github.com/Steve-Aiven/aiven-auto-ontology-demo
+
+To connect a private fork for Runtime scanning, install the Aiven GitHub app for org **Solutions Architecture**: https://github.com/apps/aiven-platform/installations/select_target
 
 ## Demo script
 
