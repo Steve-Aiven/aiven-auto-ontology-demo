@@ -31,8 +31,10 @@ POST /v1/embeddings {"input":"booked revenue"} -> dims 384
 ## Auto Ontology UI / Runtime
 
 - NGC `nvcr.io/nvidia/auto-ontology:latest` is not publicly pullable; images build from `vendor/nvidia-auto-ontology` via `Dockerfile.aiven` (Ubuntu base).
-- Full UI deploy: push this repo to GitHub, connect VCS in Aiven org, deploy `compose.aiven.yaml` (or deploy `os-embed-shim` alone first).
-- Backend health check deferred until Runtime/local image build completes.
+- Local `docker build -f vendor/nvidia-auto-ontology/Dockerfile.aiven` → **success** (`auto-ontology:aiven`).
+- GitHub: https://github.com/Steve-Aiven/aiven-auto-ontology-demo (public)
+- Runtime app **`ao-embed-shim`** created (OpenSearch integration + `OS_EMBED_MODEL_ID`); redeploy in progress after connection-string fix.
+- Full UI: deploy `compose.aiven.yaml` from Console Runtime, or run `docker compose` with `.env` pointing at Aiven PG/OS/Gateway.
 
 ## Smoke script
 
