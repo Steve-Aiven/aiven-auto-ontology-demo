@@ -38,7 +38,11 @@ COPY --chmod=0755 <<'EOF' /usr/local/bin/entrypoint.sh
 set -e
 mode="${1:-server}"
 case "$mode" in
-  server) exec python -m auto_ontology.server ;;
+  server)
+    # Runtime has no separate migrate Job; apply schema then serve.
+    alembic upgrade head
+    exec python -m auto_ontology.server
+    ;;
   ingestion_service) exec python -m auto_ontology.ingestion_service ;;
   migrate) exec alembic upgrade head ;;
   *) echo "Unknown mode: $mode" >&2; exit 2 ;;
