@@ -13,6 +13,9 @@ function buildConnectionString(): string {
 	const user = process.env.POSTGRES_USER;
 	const password = process.env.POSTGRES_PASSWORD;
 	const database = process.env.POSTGRES_DATABASE;
+	// Aiven (and most managed Postgres) reject non-SSL; without sslmode the
+	// pg driver error surfaces as Prisma P1010 DatabaseAccessDenied.
+	const sslmode = process.env.POSTGRES_SSLMODE ?? 'require';
 
 	if (!user || !password || !database) {
 		// `next build` evaluates the module graph (e.g. the Better Auth route)
@@ -27,7 +30,9 @@ function buildConnectionString(): string {
 		);
 	}
 
-	return `postgresql://${user}:${password}@${host}:${port}/${database}`;
+	const u = encodeURIComponent(user);
+	const p = encodeURIComponent(password);
+	return `postgresql://${u}:${p}@${host}:${port}/${database}?sslmode=${encodeURIComponent(sslmode)}`;
 }
 
 function createPrismaClient(): PrismaClient {

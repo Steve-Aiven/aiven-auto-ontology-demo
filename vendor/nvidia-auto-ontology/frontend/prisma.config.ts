@@ -12,6 +12,7 @@ const password = process.env.POSTGRES_PASSWORD ?? '';
 const host = process.env.POSTGRES_HOST ?? 'localhost';
 const port = process.env.POSTGRES_PORT ?? '5432';
 const database = process.env.POSTGRES_DATABASE ?? 'auto_ontology';
+const sslmode = process.env.POSTGRES_SSLMODE ?? 'require';
 
 export default defineConfig({
 	schema: 'prisma/schema.prisma',
@@ -23,6 +24,7 @@ export default defineConfig({
 		// lets the connection's search_path decide where it lands; without this
 		// the tables follow the server default, which resolves `"$user"` to the
 		// `auto_ontology` schema because the role is also called `auto_ontology`.
-		url: `postgresql://${user}:${password}@${host}:${port}/${database}?schema=frontend`,
+		// `sslmode` is required for Aiven-managed Postgres (non-SSL → P1010).
+		url: `postgresql://${encodeURIComponent(user)}:${encodeURIComponent(password)}@${host}:${port}/${database}?schema=frontend&sslmode=${encodeURIComponent(sslmode)}`,
 	},
 });
