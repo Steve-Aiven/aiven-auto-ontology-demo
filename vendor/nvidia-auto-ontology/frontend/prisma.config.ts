@@ -25,6 +25,6 @@ export default defineConfig({
 		// the tables follow the server default, which resolves `"$user"` to the
 		// `auto_ontology` schema because the role is also called `auto_ontology`.
 		// `sslmode` is required for Aiven-managed Postgres (non-SSL → P1010).
-		url: `postgresql://${encodeURIComponent(user)}:${encodeURIComponent(password)}@${host}:${port}/${database}?schema=frontend&sslmode=${encodeURIComponent(sslmode)}`,
+		url: `postgresql://${encodeURIComponent(user)}:${encodeURIComponent(password)}@${host}:${port}/${database}?schema=frontend&sslmode=${encodeURIComponent(sslmode)}&uselibpqcompat=true`,
 	},
 });

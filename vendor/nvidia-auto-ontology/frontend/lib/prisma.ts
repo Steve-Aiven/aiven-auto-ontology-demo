@@ -32,7 +32,10 @@ function buildConnectionString(): string {
 
 	const u = encodeURIComponent(user);
 	const p = encodeURIComponent(password);
-	return `postgresql://${u}:${p}@${host}:${port}/${database}?sslmode=${encodeURIComponent(sslmode)}`;
+	// Node `pg` currently aliases require/prefer/verify-ca to verify-full, which
+	// fails against Aiven's chain ("self-signed certificate in certificate chain").
+	// uselibpqcompat restores libpq semantics so require means encrypt-only.
+	return `postgresql://${u}:${p}@${host}:${port}/${database}?sslmode=${encodeURIComponent(sslmode)}&uselibpqcompat=true`;
 }
 
 function createPrismaClient(): PrismaClient {
