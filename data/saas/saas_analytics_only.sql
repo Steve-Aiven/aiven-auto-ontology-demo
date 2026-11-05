@@ -12,8 +12,11 @@ CREATE TABLE IF NOT EXISTS finance.customers (
     name          TEXT NOT NULL,
     segment       TEXT NOT NULL CHECK (segment IN ('enterprise', 'midmarket', 'smb')),
     region        TEXT NOT NULL,
-    created_at    DATE NOT NULL
+    created_at    DATE NOT NULL,
+    billing_email TEXT
 );
+
+ALTER TABLE finance.customers ADD COLUMN IF NOT EXISTS billing_email TEXT;
 
 CREATE TABLE IF NOT EXISTS finance.invoices (
     invoice_id    SERIAL PRIMARY KEY,
@@ -22,6 +25,15 @@ CREATE TABLE IF NOT EXISTS finance.invoices (
     booked_amount NUMERIC(14, 2) NOT NULL,
     currency      TEXT NOT NULL DEFAULT 'USD',
     status        TEXT NOT NULL CHECK (status IN ('booked', 'void', 'draft'))
+);
+
+CREATE TABLE IF NOT EXISTS finance.invoice_events_landing (
+    event_id      TEXT PRIMARY KEY,
+    invoice_id    INT,
+    customer_id   INT,
+    booked_amount NUMERIC(14, 2) NOT NULL,
+    event_ts      TIMESTAMPTZ NOT NULL,
+    source_topic  TEXT NOT NULL DEFAULT 'invoice_booked_events'
 );
 
 CREATE TABLE IF NOT EXISTS sales.opportunities (
@@ -40,15 +52,15 @@ CREATE TABLE IF NOT EXISTS marketing.attribution (
     channel        TEXT NOT NULL
 );
 
-TRUNCATE marketing.attribution, sales.opportunities, finance.invoices, finance.customers
+TRUNCATE marketing.attribution, sales.opportunities, finance.invoices, finance.invoice_events_landing, finance.customers
     RESTART IDENTITY CASCADE;
 
-INSERT INTO finance.customers (name, segment, region, created_at) VALUES
-    ('Acme Corp', 'enterprise', 'NA', '2024-01-15'),
-    ('Globex', 'midmarket', 'EMEA', '2024-03-02'),
-    ('Initech', 'smb', 'NA', '2024-06-20'),
-    ('Umbrella', 'enterprise', 'APAC', '2023-11-08'),
-    ('Stark Industries', 'enterprise', 'NA', '2024-02-01');
+INSERT INTO finance.customers (name, segment, region, created_at, billing_email) VALUES
+    ('Acme Corp', 'enterprise', 'NA', '2024-01-15', 'billing@acme.example'),
+    ('Globex', 'midmarket', 'EMEA', '2024-03-02', 'ap@globex.example'),
+    ('Initech', 'smb', 'NA', '2024-06-20', 'finance@initech.example'),
+    ('Umbrella', 'enterprise', 'APAC', '2023-11-08', 'accounts@umbrella.example'),
+    ('Stark Industries', 'enterprise', 'NA', '2024-02-01', 'billing@stark.example');
 
 INSERT INTO finance.invoices (customer_id, invoice_date, booked_amount, status) VALUES
     (1, '2025-07-15', 120000.00, 'booked'),
@@ -110,3 +122,7 @@ COMMENT ON COLUMN sales.opportunities.arr_amount IS
     'Sales ARR at close; NOT the same as booked invoice revenue.';
 COMMENT ON COLUMN marketing.attribution.pipeline_amount IS
     'Attributed pipeline; marketing metric, not recognized revenue.';
+COMMENT ON COLUMN finance.customers.billing_email IS
+    'PII: customer billing contact email. Do not expose via ungoverned agent queries.';
+COMMENT ON TABLE finance.invoice_events_landing IS
+    'Landing zone for Kafka/ClickHouse invoice booked events upstream of finance.invoices.';

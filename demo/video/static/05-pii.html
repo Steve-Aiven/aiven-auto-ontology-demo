@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Serif:wght@600&display=swap" />
+  <link rel="stylesheet" href="card.css" />
+  <title>PII</title>
+</head>
+<body>
+  <div class="wrap">
+    <div>
+      <div class="brand"><strong>DataHub</strong> · governance gate</div>
+      <h1 style="margin-top:36px">billing_email is PII</h1>
+      <p class="sub">Before any agent writes SQL, it should see the tag and refuse to dump customer emails.</p>
+      <div class="row" style="margin-top:56px">
+        <div class="chip">Column: finance.customers.billing_email</div>
+        <div class="chip" style="border-color:#e76f6f;color:#e76f6f">PII</div>
+        <div class="chip" style="border-color:#f0a05a;color:#f0a05a">Sensitive</div>
+        <div class="chip on">Agent action: refuse dump</div>
+      </div>
+    </div>
+    <div class="footer">Governance is metric choice and data you must not return</div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,147 @@
+# KubeCon teaser — live DataHub / AO screenshots preferred; static cards for open/close.
+width: 1920
+height: 1080
+voice: en-US-GuyNeural
+crossfade_s: 0.3
+ken_burns: true
+
+beats:
+  - id: 01-cold-open
+    title: Cold open
+    hold_ms: 5000
+    vo: >-
+      Board question: what was revenue last quarter?
+      In this estate, Finance, Sales, and Marketing each have a number that looks like revenue.
+      Without context, an agent will sound confident and still be wrong.
+    capture:
+      kind: static
+      path: static/01-cold-open.html
+
+  - id: 02-estate
+    title: Estate
+    hold_ms: 4000
+    vo: >-
+      This is a real multi-service estate on Aiven:
+      DataHub, Postgres, Kafka, and ClickHouse under one catalog.
+    capture:
+      kind: static
+      path: static/02-estate.html
+      live:
+        kind: datahub
+        actions:
+          - action: goto
+            path: /ingestion/sources?hideSystem=true&page=1
+            wait_ms: 4000
+
+  - id: 03-map
+    title: DataHub map
+    hold_ms: 5000
+    vo: >-
+      DataHub is the map and rulebook.
+      Finance owns the invoices that define booked revenue.
+      Sales ARR and Marketing pipeline are real metrics, but they are not the board number.
+    capture:
+      kind: static
+      path: static/03-map.html
+      live:
+        kind: datahub
+        actions:
+          - action: goto
+            path: /search?page=1&query=invoices&unionType=0
+            wait_ms: 4500
+
+  - id: 04-lineage
+    title: Lineage
+    hold_ms: 5000
+    vo: >-
+      Lineage shows how the number arrives:
+      Kafka events, a ClickHouse hop, a landing table, then certified invoices.
+      Catalog without lineage is a dictionary. Lineage makes it an operating map.
+    capture:
+      kind: static
+      path: static/04-lineage.html
+      live:
+        kind: datahub
+        actions:
+          - action: goto
+            path: /search?page=1&query=invoices&unionType=0
+            wait_ms: 3000
+          - action: click
+            selector: 'a[href*="finance.invoices"]'
+            wait_ms: 4000
+          - action: click_text
+            text: Lineage
+            wait_ms: 4500
+
+  - id: 05-pii
+    title: PII gate
+    hold_ms: 4500
+    vo: >-
+      Governance is also what you must not return.
+      Billing email is tagged PII.
+      A trustworthy agent finds that tag and refuses to dump customer emails.
+    capture:
+      kind: static
+      path: static/05-pii.html
+      live:
+        kind: datahub
+        actions:
+          - action: goto
+            path: /search?page=1&query=billing_email&unionType=0
+            wait_ms: 3500
+          - action: click
+            selector: 'a[href*="/dataset/"]'
+            wait_ms: 4500
+
+  - id: 06-calculator
+    title: Certified calculator
+    hold_ms: 4500
+    vo: >-
+      Auto Ontology is the certified calculator.
+      Booked revenue is pinned to finance invoices where status equals booked,
+      not ARR, not pipeline.
+    capture:
+      kind: static
+      path: static/06-calculator.html
+      live:
+        kind: auto_ontology
+        actions:
+          - action: goto
+            path: /
+            wait_ms: 4000
+        # If AO UI is down, capture falls back; optional DataHub glossary override via
+        # DEMO_VIDEO_CALC_FALLBACK=datahub handled in build by second live block below.
+      live_fallback:
+        kind: datahub
+        actions:
+          - action: goto
+            path: /glossary
+            wait_ms: 4000
+          - action: click_text
+            text: booked_revenue
+            wait_ms: 4000
+
+  - id: 07-punchline
+    title: Punchline
+    hold_ms: 5500
+    vo: >-
+      Ask for booked revenue in Q3 twenty twenty-five.
+      The answer is seven hundred seventeen thousand dollars,
+      with SQL you can defend in a meeting.
+    capture:
+      kind: static
+      path: static/07-punchline.html
+      live:
+        kind: harness
+
+  - id: 08-close
+    title: Close
+    hold_ms: 5500
+    vo: >-
+      DataHub keeps the agent from wandering.
+      Auto Ontology keeps it from inventing the wrong number.
+      The demo is open source.
+      Run the estate, or rebuild this video from the storyboard on the show floor.
+    capture:
+      kind: static
+      path: static/08-close.html

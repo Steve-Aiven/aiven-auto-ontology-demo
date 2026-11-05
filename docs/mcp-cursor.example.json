@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "datahub": {
+      "command": "uvx",
+      "args": ["mcp-server-datahub@latest"],
+      "env": {
+        "DATAHUB_GMS_URL": "https://YOUR-DATAHUB-APP-HOST/api/gms",
+        "DATAHUB_GMS_TOKEN": "YOUR_DATAHUB_PAT"
+      }
+    },
+    "auto-ontology": {
+      "url": "http://localhost:3003/mcp"
+    }
+  }
+}

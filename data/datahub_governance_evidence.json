@@ -1,0 +1,28 @@
+{
+  "glossary_term": "booked_revenue",
+  "pii_column": "finance.customers.billing_email",
+  "pii_tags": ["PII", "Sensitive"],
+  "certified_dataset": "finance.invoices",
+  "non_certified": [
+    "sales.opportunities.arr_amount",
+    "marketing.attribution.pipeline_amount"
+  ],
+  "owners": {
+    "finance.invoices": "finance",
+    "sales.opportunities": "sales",
+    "marketing.attribution": "marketing"
+  },
+  "lineage": [
+    "invoice_booked_events",
+    "clickhouse.default.invoice_events",
+    "finance.invoice_events_landing",
+    "finance.invoices"
+  ],
+  "search_hints": {
+    "pii": ["billing_email", "PII", "Sensitive"],
+    "revenue": ["booked_revenue", "finance.invoices", "CertifiedRevenue"],
+    "uncertified": ["arr_amount", "pipeline_amount"]
+  },
+  "expected_q3_booked_revenue": 717000,
+  "expected_sql_hints": ["finance.invoices", "status", "booked"]
+}

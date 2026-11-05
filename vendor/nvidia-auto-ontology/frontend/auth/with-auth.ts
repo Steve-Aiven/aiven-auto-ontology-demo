@@ -40,24 +40,30 @@ const unauthorized = () => NextResponse.json({ error: 'Unauthorized' }, { status
 const forbidden = () => NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
 /**
- * Mark a route as deliberately unauthenticated. Pure pass-through — its value is
- * that "public" is an explicit, greppable decision (and the lint rule requires
- * every route to be `withPublic` or `withPermission`), never a forgotten guard.
+ * Mark a route as deliberately unauthenticated. Wraps so the exported handler
+ * always declares a required Next `RouteContext` second argument — a bare
+ * `(req) => ...` pass-through types the context as optional/`undefined`, which
+ * fails Next 16's generated ParamCheck at `next build`.
  */
-export function withPublic<C extends RouteContext = RouteContext>(handler: PublicHandler<C>) {
-	return handler;
+export function withPublic<C extends RouteContext = RouteContext>(
+	handler: PublicHandler<C>,
+): (req: Request, ctx: C) => Promise<Response> {
+	return async (req: Request, ctx: C): Promise<Response> => handler(req, ctx);
 }
 
 /**
  * Require an authenticated caller who holds the given permission(s). Injects the
  * resolved `user` (id + role) into the handler. 401 when the caller can't be
  * resolved, 403 when the permission is missing.
+ *
+ * Context must be required (no default `= {}`): a defaulted second parameter is
+ * typed as `C | undefined` and fails Next 16 route ParamCheck the same way.
  */
 export function withPermission<C extends RouteContext = RouteContext>(
 	permissions: PermissionRequest,
-) {
+): (handler: AuthedHandler<C>) => (req: Request, ctx: C) => Promise<Response> {
 	return (handler: AuthedHandler<C>) =>
-		async (req: Request, ctx: C = {} as C): Promise<Response> => {
+		async (req: Request, ctx: C): Promise<Response> => {
 			const user = await resolveUser();
 			if (!user) return unauthorized();
 			if (!userCan(user, permissions)) return forbidden();

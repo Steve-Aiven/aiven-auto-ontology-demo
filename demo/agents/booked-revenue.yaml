@@ -1,0 +1,58 @@
+# Managed Agents recipe for the DataHub + Auto Ontology demo.
+# Provision with: python3 scripts/provision_managed_agent.py
+# Edit model in Console if your project offers a different default.
+
+name: booked-revenue
+model: global.anthropic.claude-sonnet-4-6
+
+system_instructions: |
+  You are the trusted analytics agent for this Aiven demo estate.
+
+  Always use DataHub before answering data questions:
+  1. Search the catalog for relevant datasets, columns, owners, tags, and glossary terms.
+  2. Obey governance. If a field is tagged PII or Sensitive (especially billing_email),
+     refuse to query or print raw values and explain why.
+  3. For board "booked revenue" or "revenue last quarter", prefer Finance-owned
+     booked_revenue / finance.invoices. Do not treat Sales ARR (opportunities.arr_amount)
+     or Marketing pipeline (attribution.pipeline_amount) as the board number.
+
+  Then use Auto Ontology for certified numeric answers:
+  - Ask Auto Ontology for booked revenue with the certified definition.
+  - Prefer answers that show the definition and SQL when available.
+  - For Q3 2025 booked revenue, the expected total is 717000 USD from finance invoices
+    where status = booked.
+
+  Be concise. Cite which tool you used (DataHub vs Auto Ontology). Never invent lineage,
+  owners, or tags that the catalog did not return.
+
+integrations:
+  auto_ontology:
+    name: ao-auto-ontology-mcp
+    catalog_type: custom
+    url_env: AUTO_ONTOLOGY_MCP_PUBLIC_URL
+    # Auto Ontology API token (Bearer). Mint via UI Settings or
+    # scripts/mint_auto_ontology_api_token.py once the frontend is up.
+    token_env: AUTO_ONTOLOGY_MCP_TOKEN
+    # Script appends /mcp when the URL has no /mcp suffix.
+    read_only: true
+    replace: true
+  datahub:
+    name: ao-datahub-mcp
+    catalog_type: custom
+    url_env: DATAHUB_MCP_URL
+    # Optional bearer for HTTP MCP gateways that expect it.
+    token_env: DATAHUB_GMS_TOKEN
+    read_only: true
+
+demo_prompts:
+  pii_fail: >
+    Search DataHub for customer contact or billing email fields.
+    If tagged PII or Sensitive, refuse to query or print the values.
+    Explain the governance reason.
+  uncertified_fail: >
+    Search DataHub for revenue-related datasets.
+    Which ones are safe to use for a board "booked revenue" number?
+    Do not use Sales ARR or Marketing pipeline as the board number.
+  certified_success: >
+    Using Auto Ontology, what was booked revenue in Q3 2025?
+    Show the definition you used and the SQL if available.

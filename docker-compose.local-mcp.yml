@@ -1,0 +1,33 @@
+services:
+  postgres:
+    environment:
+      POSTGRES_SSLMODE: disable
+  auto-ontology:
+    environment:
+      POSTGRES_SSLMODE: disable
+  ingestion-service:
+    environment:
+      POSTGRES_SSLMODE: disable
+  auto-ontology-migrate:
+    environment:
+      POSTGRES_SSLMODE: disable
+  frontend-migrate:
+    environment:
+      POSTGRES_SSLMODE: disable
+  auto-ontology-frontend:
+    environment:
+      POSTGRES_SSLMODE: disable
+      APP_URL: http://localhost:3000
+      AUTO_ONTOLOGY_MCP_PUBLIC_URL: http://localhost:3003
+  auto-ontology-mcp:
+    build:
+      context: ./vendor/nvidia-auto-ontology/mcp
+      dockerfile: Dockerfile.aiven
+    ports:
+      - "3003:3003"
+    depends_on:
+      - auto-ontology-frontend
+    environment:
+      AUTO_ONTOLOGY_API_URL: http://auto-ontology-frontend:3000
+      AUTO_ONTOLOGY_MCP_PUBLIC_URL: http://localhost:3003
+      AUTO_ONTOLOGY_MCP_HOST: 0.0.0.0

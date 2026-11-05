@@ -21,18 +21,27 @@ Without a semantic layer, an agent asked "What was revenue last quarter?" can pi
 
 In Auto Ontology, certify a glossary term such as `booked_revenue` mapped to finance invoices with `status = 'booked'`. Then `ask_question` should use that definition and return SQL + rows.
 
-## Where DataHub still matters (v1 narrative only)
+## Where DataHub is deployed in this demo
 
-DataHub is **not deployed** in this demo. In a fuller estate it would:
+DataHub (`ao-datahub`) catalogs the estate: Postgres `saas_analytics`, Kafka topic `invoice_booked_events`, ClickHouse `invoice_events`, and OpenSearch.
 
-- Catalog Kafka, ClickHouse, dashboards, and dbt models beside Postgres
-- Show lineage into `finance.invoices`
-- Attach ownership and PII tags before an agent queries
+It carries:
 
-Pairing later: DataHub MCP for discovery and governance, Auto Ontology MCP for certified answers.
+- **Lineage:** Kafka -> ClickHouse -> `finance.invoice_events_landing` -> `finance.invoices`
+- **Owners:** Finance on invoices; Sales / Marketing on their metrics
+- **PII:** `finance.customers.billing_email` tagged Sensitive / PII
+- **Glossary:** `booked_revenue` as the certified board definition
+
+Pairing: DataHub MCP for discovery and governance, Auto Ontology MCP for certified answers. See [demo-script-datahub-auto-ontology.md](demo-script-datahub-auto-ontology.md).
+
+## Agent loop (success and failure)
+
+1. Search DataHub for customer emails -> PII tag -> **refuse** raw dump.
+2. Search "revenue" -> see non-certified ARR/pipeline -> **steer** to Finance `booked_revenue`.
+3. Ask Auto Ontology for Q3 2025 booked revenue -> **717000** USD with invoice SQL.
 
 ## Real-world parallels
 
 1. Board deck asks for "revenue" while Finance, Sales, and Marketing disagree.
 2. Text-to-SQL must be auditable (answer + SQL + rows).
-3. Agent harnesses (Cursor / Claude) should inherit RBAC without holding DB credentials (Auto Ontology MCP).
+3. Agent harnesses (Cursor / Claude) should inherit RBAC and catalog context without holding raw DB credentials for every hop (DataHub MCP + Auto Ontology MCP).

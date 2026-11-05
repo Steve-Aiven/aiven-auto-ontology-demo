@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Serif:wght@600&display=swap" />
+  <link rel="stylesheet" href="card.css" />
+  <title>Punchline</title>
+</head>
+<body>
+  <div class="wrap">
+    <div>
+      <div class="brand"><strong>Certified answer</strong> · Q3 2025</div>
+      <h1 style="margin-top:36px">Booked revenue</h1>
+      <div class="big-number">$717,000</div>
+      <div class="code">
+        SELECT SUM(booked_amount)<br/>
+        FROM finance.invoices<br/>
+        WHERE status = 'booked'<br/>
+          AND invoice_date &gt;= '2025-07-01'<br/>
+          AND invoice_date &lt; '2025-10-01';
+      </div>
+    </div>
+    <div class="footer">If you see millions, you picked ARR or pipeline</div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Serif:wght@600&display=swap" />
+  <link rel="stylesheet" href="card.css" />
+  <title>Lineage</title>
+</head>
+<body>
+  <div class="wrap">
+    <div>
+      <div class="brand"><strong>DataHub</strong> · operating map</div>
+      <h1 style="margin-top:36px">Where the number comes from</h1>
+      <p class="sub">Lineage turns a dictionary of tables into a path you can operate and defend.</p>
+      <div class="flow">
+        <div class="node">Kafka<br/><small style="color:#9aa8c0">invoice_booked_events</small></div>
+        <div class="arrow">→</div>
+        <div class="node">ClickHouse<br/><small style="color:#9aa8c0">invoice_events</small></div>
+        <div class="arrow">→</div>
+        <div class="node">Postgres landing<br/><small style="color:#9aa8c0">invoice_events_landing</small></div>
+        <div class="arrow">→</div>
+        <div class="node">finance.invoices<br/><small style="color:#3ecf8e">certified facts</small></div>
+      </div>
+    </div>
+    <div class="footer">Catalog without lineage is incomplete for agents</div>
+  </div>
+</body>
+</html>
